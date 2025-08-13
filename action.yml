@@ -60,13 +60,13 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install GitHub CLI
-      shell: bash
-      run: |
-        echo "::group::Install gh CLI"
-        # Install GitHub CLI for PR operations
-        sudo apt-get update && sudo apt-get install -y gh
-        echo "::endgroup::"
+    #- name: Install GitHub CLI
+      # shell: bash
+      # run: |
+        # echo "::group::Install gh CLI"
+        # # Install GitHub CLI for PR operations
+        # sudo apt-get update && sudo apt-get install -y gh
+        # echo "::endgroup::"
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -155,10 +155,11 @@ runs:
       run: |
         echo "::group::Install Deps"
         if [ "${{ steps.claudecode-check.outputs.enable_claudecode }}" == "true" ]; then
-          pip install -r ${{ github.action_path }}/claudecode/requirements.txt
+          req_file="${{ github.action_path }}/claudecode/requirements.txt"
+          pip install -r "$req_file"
           npm install -g @anthropic-ai/claude-code
         fi
-        sudo apt-get update && sudo apt-get install -y jq
+        #sudo apt-get update && sudo apt-get install -y jq
         echo "::endgroup::"
     
     - name: Run ClaudeCode scan
@@ -193,8 +194,10 @@ runs:
         export CLAUDE_TIMEOUT="${{ inputs.claudecode-timeout }}"
         
         # Run ClaudeCode audit with verbose debugging
-        export REPO_PATH=$(pwd)
-        cd ${{ github.action_path }}
+        export REPO_PATH=$(pwd -W)
+        echo "$REPO_PATH" >> GITHUB_PATH
+        ACTION_PATH="${{ github.action_path }}"
+        cd $ACTION_PATH
         
         # Enable verbose debugging
         echo "::group::ClaudeCode Environment"
@@ -211,7 +214,7 @@ runs:
         
         echo "::group::ClaudeCode Execution"
         # Add current directory to Python path so it can find the claudecode module
-        export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
+        export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd -W)"
         echo "Updated PYTHONPATH: $PYTHONPATH"
         
         # Run from the action root directory so Python can find the claudecode module
@@ -269,13 +272,16 @@ runs:
         # Always copy files to workspace root regardless of the outcome
         # This ensures artifact upload and PR commenting can find them
         if [ -f findings.json ]; then
-          cp findings.json ${{ github.workspace }}/findings.json || true
+          findingsFile="${{ github.workspace }}/findings.json"
+          cp findings.json $findingsFile || true
         fi
         if [ -f claudecode/claudecode-results.json ]; then
-          cp claudecode/claudecode-results.json ${{ github.workspace }}/claudecode-results.json || true
+          claudeCodeResults="${{ github.workspace }}/claudecode-results.json"
+          cp claudecode/claudecode-results.json $claudeCodeResults || true
         fi
         if [ -f claudecode/claudecode-error.log ]; then
-          cp claudecode/claudecode-error.log ${{ github.workspace }}/claudecode-error.log || true
+          claudeCodeError="${{ github.workspace }}/claudecode-error.log"
+          cp claudecode/claudecode-error.log $claudeCodeError || true
         fi
         
         echo "::endgroup::"
@@ -301,7 +307,8 @@ runs:
         CLAUDECODE_FINDINGS: ${{ steps.claudecode-scan.outputs.findings_count }}
         SILENCE_CLAUDECODE_COMMENTS: ${{ steps.claudecode-check.outputs.silence_claudecode_comments }}
       run: |
-        node ${{ github.action_path }}/scripts/comment-pr-findings.js
+        req_file="${{ github.action_path }}/scripts/comment-pr-findings.js"
+        node $req_file
 
 branding:
   icon: 'shield'
