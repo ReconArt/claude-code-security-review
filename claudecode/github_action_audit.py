@@ -236,7 +236,9 @@ class SimpleClaudeRunner:
                     cwd=repo_dir,
                     capture_output=True,
                     text=True,
-                    timeout=self.timeout_seconds
+                    timeout=self.timeout_seconds,
+                    shell=True,
+                    encoding="utf-8"
                 )
                 
                 if result.returncode != 0:
@@ -318,7 +320,9 @@ class SimpleClaudeRunner:
                 ['claude', '--version'],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
+                shell=True,
+                encoding="utf-8"
             )
             
             if result.returncode == 0:
